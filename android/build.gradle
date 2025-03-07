@@ -2,7 +2,7 @@ group 'de.jonasbark.stripepayment'
 version '1.1'
 
 buildscript {
-    ext.kotlin_version = "1.8.22"
+    ext.kotlin_version = "1.9.0"
     repositories {
         google()
         mavenCentral()

@@ -72,7 +72,7 @@ android {
 
 dependencies {
     // Ensure you're using a compatible Kotlin version
-    api 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10'  // Updated Kotlin version
+    // api 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10'  // Updated Kotlin version
 
     implementation 'androidx.annotation:annotation:1.1.0'
     implementation 'com.stripe:stripe-android:16.10.0'

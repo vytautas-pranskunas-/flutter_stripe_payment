@@ -2,7 +2,7 @@ group 'de.jonasbark.stripepayment'
 version '1.1'
 
 buildscript {
-    ext.kotlin_version = "1.9.0"
+    ext.kotlin_version = "1.8.22"
     repositories {
         google()
         mavenCentral()
@@ -75,4 +75,5 @@ dependencies {
     implementation 'com.stripe:stripe-android:16.10.0'
     implementation 'com.android.support:appcompat-v7:28.0.0'
     implementation 'com.google.android.gms:play-services-wallet:18.0.0'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
 }

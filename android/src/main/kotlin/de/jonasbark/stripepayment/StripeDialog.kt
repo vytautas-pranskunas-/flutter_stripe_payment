@@ -1,19 +1,18 @@
 package de.jonasbark.stripepayment
 
+import android.app.DialogFragment
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.DialogFragment
+import com.stripe.android.ApiResultCallback
 import com.stripe.android.Stripe
 import com.stripe.android.model.PaymentMethod
 import com.stripe.android.model.PaymentMethodCreateParams
 import com.stripe.android.view.CardMultilineWidget
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+
 
 class StripeDialog : DialogFragment() {
 
@@ -27,30 +26,38 @@ class StripeDialog : DialogFragment() {
             frag.arguments = args
             return frag
         }
+
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.activity_stripe, container, false)
+        return inflater.inflate(R.layout.activity_stripe, container)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        // Get field from view
+        // Fetch arguments from bundle and set title
         val title = arguments?.getString("title", "Add Source")
         dialog?.setTitle(title)
 
-        val mCardInputWidget = view.findViewById<CardMultilineWidget>(R.id.card_input_widget)
+        val mCardInputWidget = view.findViewById<View>(R.id.card_input_widget) as CardMultilineWidget
         mCardInputWidget.setShouldShowPostalCode(false)
-
         view.findViewById<View>(R.id.buttonSave)?.setOnClickListener {
             getToken()
         }
     }
 
-    override fun onCancel(dialog: DialogInterface) {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // TODO Auto-generated method stub
+        super.onCreate(savedInstanceState)
+
+        setStyle(STYLE_NO_TITLE, R.style.Theme_AppCompat_Light_Dialog)
+    }
+
+    override fun onCancel(dialog: DialogInterface?) {
         super.onCancel(dialog)
         onCancelListener.onCancel(dialog)
     }
@@ -60,39 +67,53 @@ class StripeDialog : DialogFragment() {
     var tokenListener: ((PaymentMethod) -> (Unit))? = null
 
     private fun getToken() {
-        val mCardInputWidget = view?.findViewById<CardMultilineWidget>(R.id.card_input_widget)
+        val mCardInputWidget =
+            view?.findViewById<View>(R.id.card_input_widget) as CardMultilineWidget
 
-        if (mCardInputWidget?.validateAllFields() == true) {
+        if (mCardInputWidget.validateAllFields()) {
+
             mCardInputWidget.card?.let { card ->
+
                 view?.findViewById<View>(R.id.progress)?.visibility = View.VISIBLE
                 view?.findViewById<View>(R.id.buttonSave)?.visibility = View.GONE
 
+                val paymentMethodParamsCard = card.toPaymentMethodParamsCard()
                 val paymentMethodCreateParams = PaymentMethodCreateParams.create(
-                    PaymentMethodCreateParams.Card.create(
-                        number = card.number,
-                        expiryMonth = card.expiryMonth,
-                        expiryYear = card.expiryYear,
-                        cvc = card.cvc
-                    ),
+                    paymentMethodParamsCard,
                     PaymentMethod.BillingDetails.Builder().build()
                 )
 
-                CoroutineScope(Dispatchers.Main).launch {
-                    try {
-                        val result = stripeInstance.createPaymentMethod(paymentMethodCreateParams)
-                        view?.findViewById<View>(R.id.progress)?.visibility = View.GONE
-                        view?.findViewById<View>(R.id.buttonSave)?.visibility = View.GONE
-                        tokenListener?.invoke(result)
-                        dismiss()
-                    } catch (error: Exception) {
-                        view?.findViewById<View>(R.id.progress)?.visibility = View.GONE
-                        view?.findViewById<View>(R.id.buttonSave)?.visibility = View.VISIBLE
-                        Toast.makeText(requireContext(), error.localizedMessage, Toast.LENGTH_LONG).show()
-                    }
-                }
+                stripeInstance.createPaymentMethod(
+                    paymentMethodCreateParams,
+                    null,
+                    arguments?.getString("stripeAccountId", null),
+                    object : ApiResultCallback<PaymentMethod> {
+                        override fun onSuccess(result: PaymentMethod) {
+                            view?.findViewById<View>(R.id.progress)?.visibility = View.GONE
+                            view?.findViewById<View>(R.id.buttonSave)?.visibility = View.GONE
+
+                            tokenListener?.invoke(result)
+                            dismiss()
+                        }
+
+                        override fun onError(error: Exception) {
+                            view?.findViewById<View>(R.id.progress)?.visibility = View.GONE
+                            view?.findViewById<View>(R.id.buttonSave)?.visibility = View.VISIBLE
+                            view?.let {
+                                Toast.makeText(it.context, error.localizedMessage, Toast.LENGTH_LONG)
+                                    .show()
+                            }
+                        }
+
+                    })
+
             }
         } else {
-            Toast.makeText(requireContext(), "The card info you entered is not correct", Toast.LENGTH_LONG).show()
+            view?.let {
+                Toast.makeText(it.context, "The card info you entered is not correct", Toast.LENGTH_LONG)
+                    .show()
+            }
         }
+
     }
 }

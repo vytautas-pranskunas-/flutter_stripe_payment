@@ -1,97 +1,78 @@
 package de.jonasbark.stripepayment
 
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReadableMap
 import com.gettipsi.stripe.StripeModule
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry.Registrar
 
-class StripePaymentPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
-    private lateinit var channel: MethodChannel
-    private var stripeModule: StripeModule? = null
-
-    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(binding.binaryMessenger, "stripe_payment")
-        stripeModule = StripeModule(binding.applicationContext)
-        channel.setMethodCallHandler(this)
-    }
-
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
-    }
-
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        stripeModule?.setActivity(binding.activity)
-    }
-
-    override fun onDetachedFromActivityForConfigChanges() {}
-
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        stripeModule?.setActivity(binding.activity)
-    }
-
-    override fun onDetachedFromActivity() {}
+class StripePaymentPlugin(private val stripeModule: StripeModule) : MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
-            "setOptions" -> {
-                val options = call.argument<Map<String, Any>>("options")
-                val errorCodes = call.argument<Map<String, Any>>("errorCodes")
-                stripeModule?.init(options, errorCodes)
-                result.success(null)
-            }
-            "setStripeAccount" -> {
-                stripeModule?.setStripeAccount(call.argument("stripeAccount"))
-                result.success(null)
-            }
-            "deviceSupportsAndroidPay" -> stripeModule?.deviceSupportsAndroidPay(createPromise(result))
-            "canMakeAndroidPayPayments" -> stripeModule?.canMakeAndroidPayPayments(createPromise(result))
-            "paymentRequestWithAndroidPay" -> stripeModule?.paymentRequestWithAndroidPay(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "setOptions" -> stripeModule.init(
+                ReadableMap(call.argument("options")),
+                ReadableMap(call.argument("errorCodes"))
             )
-            "paymentRequestWithCardForm" -> stripeModule?.paymentRequestWithCardForm(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "setStripeAccount" -> stripeModule.setStripeAccount(
+                call.argument("stripeAccount")
             )
-            "createTokenWithCard" -> stripeModule?.createTokenWithCard(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "deviceSupportsAndroidPay" -> stripeModule.deviceSupportsAndroidPay(Promise(result));
+            "canMakeAndroidPayPayments" -> stripeModule.canMakeAndroidPayPayments(Promise(result));
+            "paymentRequestWithAndroidPay" -> stripeModule.paymentRequestWithAndroidPay(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "createTokenWithBankAccount" -> stripeModule?.createTokenWithBankAccount(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "paymentRequestWithCardForm" -> stripeModule.paymentRequestWithCardForm(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "createSourceWithParams" -> stripeModule?.createSourceWithParams(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "createTokenWithCard" -> stripeModule.createTokenWithCard(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "createPaymentMethod" -> stripeModule?.createPaymentMethod(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "createTokenWithBankAccount" -> stripeModule.createTokenWithBankAccount(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "authenticatePaymentIntent" -> stripeModule?.authenticatePaymentIntent(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "createSourceWithParams" -> stripeModule.createSourceWithParams(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "confirmPaymentIntent" -> stripeModule?.confirmPaymentIntent(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "createPaymentMethod" -> stripeModule.createPaymentMethod(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "authenticateSetupIntent" -> stripeModule?.authenticateSetupIntent(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "authenticatePaymentIntent" -> stripeModule.authenticatePaymentIntent(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            "confirmSetupIntent" -> stripeModule?.confirmSetupIntent(
-                call.arguments as Map<String, Any>, createPromise(result)
+            "confirmPaymentIntent" -> stripeModule.confirmPaymentIntent(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
             )
-            else -> result.notImplemented()
+            "authenticateSetupIntent" -> stripeModule.authenticateSetupIntent(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
+            )
+            "confirmSetupIntent" -> stripeModule.confirmSetupIntent(
+                ReadableMap(call.arguments as Map<String, Any>),
+                Promise(result)
+            )
         }
     }
 
-    private fun createPromise(result: Result): Promise {
-        return object : Promise {
-            override fun resolve(value: Any?) {
-                result.success(value)
-            }
+    companion object {
 
-            override fun reject(code: String?, message: String?, throwable: Throwable?) {
-                result.error(code ?: "ERROR", message, throwable?.localizedMessage)
-            }
+        @JvmStatic
+        fun registerWith(registrar: Registrar) {
+            val channel = MethodChannel(registrar.messenger(), "stripe_payment")
+            val stripeModule = StripeModule(registrar, registrar.activity())
+            val plugin = StripePaymentPlugin(stripeModule)
+            channel.setMethodCallHandler(plugin)
         }
     }
 }

@@ -2,7 +2,7 @@ group 'de.jonasbark.stripepayment'
 version '1.1'
 
 buildscript {
-    ext.kotlin_version = "1.8.22"
+    ext.kotlin_version = "1.9.22"
     repositories {
         google()
         mavenCentral()
@@ -31,12 +31,12 @@ android {
     compileSdkVersion 35
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11
+        jvmTarget = "17"
     }
 
     sourceSets {
@@ -44,7 +44,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 26
         targetSdkVersion 35
         versionCode 1
         versionName "1.0"
